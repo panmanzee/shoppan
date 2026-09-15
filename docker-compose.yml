@@ -1,0 +1,77 @@
+# Local development infrastructure only — production runs on AWS
+# (RDS + ElastiCache), provisioned via Terraform in Phase 6. This compose
+# file just gives you a real Postgres to point Prisma at without
+# installing Postgres directly on your machine.
+#
+# `docker compose up` (no flags) starts all three services.
+# `docker compose up postgres` starts only Postgres for local API dev.
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: kindred_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kindred
+      POSTGRES_PASSWORD: kindred_dev_password
+      POSTGRES_DB: kindred
+    ports:
+      # Host port 5433 (not 5432) — 5432 is commonly already taken by a
+      # local Postgres install or another project's container. The
+      # container's own internal port stays 5432; only the host-side
+      # mapping changed, so DATABASE_URL below must say :5433.
+      - "5433:5432"
+    volumes:
+      - kindred_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kindred -d kindred"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: kindred_api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://kindred:kindred_dev_password@postgres:5432/kindred
+      NODE_ENV: production
+      PORT: 4000
+      # Override these via a .env file or shell exports for real secrets:
+      JWT_SECRET: change_me_in_production
+      JWT_EXPIRES_IN: 7d
+      COOKIE_NAME: kindred_token
+    ports:
+      - "4000:4000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+      args:
+        # Baked into the Next.js bundle at build time — points to the API
+        # service name inside the Docker network on port 4000.
+        NEXT_PUBLIC_API_URL: http://api:4000
+    container_name: kindred_web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: "0.0.0.0"
+    ports:
+      - "3000:3000"
+
+volumes:
+  kindred_postgres_data:

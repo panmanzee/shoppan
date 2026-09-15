@@ -1,0 +1,305 @@
+// Prisma schema — Phase 1 core models for the Kindred marketplace.
+// Run `npm run prisma:migrate` after filling in .env to create these tables.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Enums ----------
+
+enum Role {
+  BUYER
+  SELLER
+  ADMIN
+}
+
+enum PlanAudience {
+  BUYER
+  SELLER
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FULFILLED
+  CANCELED
+  REFUNDED
+}
+
+enum InvoiceStatus {
+  OPEN
+  PAID
+  FAILED
+  VOID
+}
+
+// ---------- Core identity ----------
+
+model User {
+  id               String   @id @default(cuid())
+  email            String   @unique
+  passwordHash     String
+  name             String
+  role             Role     @default(BUYER)
+  // Stripe Customer ID, set on first subscribe and reused for subsequent subs
+  stripeCustomerId String?  @unique
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // A user can optionally also run a seller storefront without a
+  // separate account — see PROJECT_INSTRUCTIONS.md Phase 1.
+  sellerProfile SellerProfile?
+
+  orders        Order[]
+  subscriptions Subscription[]
+  productReviews ProductReview[]
+  sellerReviews  SellerReview[]
+  productViews   ProductView[]
+
+  @@map("users")
+}
+
+model SellerProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  storeName   String
+  slug        String   @unique
+  bio         String?
+  avatarUrl   String?
+  bannerUrl   String?
+  verified    Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products    Product[]
+  orders      Order[]
+  reviews     SellerReview[]
+
+  @@map("seller_profiles")
+}
+
+// ---------- Catalog ----------
+
+model Category {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  slug     String    @unique
+  products Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  sellerId    String
+  seller      SellerProfile @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id])
+
+  title       String
+  description String
+  priceCents  Int
+  // Plain image URL for now (placeholder images while there's no S3
+  // bucket set up yet) — swap for a presigned S3 upload flow in Phase 6
+  // without changing this field's shape.
+  imageUrl    String?
+  stock       Int      @default(0)
+  isActive    Boolean  @default(true)
+  // Phase 5: 1536-dim vector embedding for semantic search via pgvector.
+  // Populated by the backfill endpoint or on product save when OPENAI_API_KEY
+  // is configured. Prisma uses Unsupported() for custom Postgres types.
+  embedding   Unsupported("vector(1536)")?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orderItems  OrderItem[]
+  reviews     ProductReview[]
+  views       ProductView[]
+
+  @@index([sellerId])
+  @@index([categoryId])
+  @@map("products")
+}
+
+// ---------- Recommendations (Phase 4) ----------
+// One row per (logged-in) product-detail view. This is the "view
+// history" signal from PROJECT_INSTRUCTIONS.md Phase 4, alongside
+// purchase history (OrderItem) and ratings (ProductReview) which already
+// existed from Phase 1/2 — recommendations.service.ts combines all three.
+// Anonymous (logged-out) views are not recorded; there's no stable
+// identity to attach them to without adding session/device tracking,
+// which is out of scope here.
+model ProductView {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  viewedAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([productId])
+  @@map("product_views")
+}
+
+// ---------- Orders ----------
+// A single buyer cart can span multiple sellers. Checkout splits it into
+// one Order PER SELLER (not one Order for the whole cart) so commission
+// and payout can be tracked per seller — see Phase 2 in
+// PROJECT_INSTRUCTIONS.md ("split a single cart into per-seller
+// sub-orders"). `commissionCents`/`sellerPayoutCents` are computed and
+// stored at checkout time so they're traceable later even if the
+// platform's commission rate changes.
+
+model Order {
+  id                String      @id @default(cuid())
+  buyerId           String
+  buyer             User        @relation(fields: [buyerId], references: [id])
+  sellerId          String
+  seller            SellerProfile @relation(fields: [sellerId], references: [id])
+  status            OrderStatus @default(PENDING)
+
+  subtotalCents     Int // list-price total for this seller's items, before any perk discount
+  discountCents     Int @default(0) // buyer subscription perk discount, e.g. Kindred+ 10% off
+  commissionCents   Int // platform's cut (seller's subscription tier can lower this), taken from (subtotal - discount)
+  sellerPayoutCents Int // (subtotalCents - discountCents) - commissionCents
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  items       OrderItem[]
+
+  @@index([buyerId])
+  @@index([sellerId])
+  @@map("orders")
+}
+
+model OrderItem {
+  id           String  @id @default(cuid())
+  orderId      String
+  order        Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId    String
+  product      Product @relation(fields: [productId], references: [id])
+
+  quantity     Int
+  unitPriceCents Int
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+// ---------- Subscriptions & billing (schema now, Stripe wiring in Phase 3) ----------
+
+model Plan {
+  id            String       @id @default(cuid())
+  audience      PlanAudience
+  name          String
+  slug          String       @unique
+  priceCents    Int
+  billingPeriod String       @default("month")
+  perks         Json
+  isDefault     Boolean      @default(false)
+
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+model Subscription {
+  id             String             @id @default(cuid())
+  userId         String
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId         String
+  plan           Plan               @relation(fields: [planId], references: [id])
+  status         SubscriptionStatus @default(ACTIVE)
+
+  stripeSubscriptionId String?      @unique
+  currentPeriodEnd     DateTime?
+
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  invoices       Invoice[]
+  billingCycles  BillingCycle[]
+
+  @@index([userId])
+  @@map("subscriptions")
+}
+
+model BillingCycle {
+  id             String       @id @default(cuid())
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  periodStart    DateTime
+  periodEnd      DateTime
+  amountCents    Int
+
+  @@index([subscriptionId])
+  @@map("billing_cycles")
+}
+
+model Invoice {
+  id             String        @id @default(cuid())
+  subscriptionId String
+  subscription   Subscription  @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  status         InvoiceStatus @default(OPEN)
+  amountCents    Int
+  stripeInvoiceId String?      @unique
+  issuedAt       DateTime      @default(now())
+
+  @@index([subscriptionId])
+  @@map("invoices")
+}
+
+// ---------- Reviews ----------
+
+model ProductReview {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  rating    Int // 1-5, enforced in reviews.schema.ts (zod), not the DB
+  comment   String?
+
+  createdAt DateTime @default(now())
+
+  // One review per person per product — stops review-bombing/spam.
+  @@unique([productId, authorId])
+  @@index([productId])
+  @@map("product_reviews")
+}
+
+model SellerReview {
+  id        String        @id @default(cuid())
+  sellerId  String
+  seller    SellerProfile @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  rating    Int
+  comment   String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([sellerId, authorId])
+  @@index([sellerId])
+  @@map("seller_reviews")
+}

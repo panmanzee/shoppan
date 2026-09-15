@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── API ─────────────────────────────────────────────────────────────────────
+  api:
+    name: API — lint · typecheck · test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: kindred
+          POSTGRES_PASSWORD: kindred_test
+          POSTGRES_DB: kindred_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://kindred:kindred_test@localhost:5432/kindred_test
+      JWT_SECRET: ci_test_secret
+      JWT_EXPIRES_IN: 1d
+      COOKIE_NAME: kindred_token
+      NODE_ENV: test
+
+    defaults:
+      run:
+        working-directory: apps/api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/api/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Run migrations
+        run: npx prisma migrate deploy
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+  # ── Web ─────────────────────────────────────────────────────────────────────
+  web:
+    name: Web — typecheck · build
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: apps/web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:4000
+        run: npm run build
+
+  # ── Docker ──────────────────────────────────────────────────────────────────
+  docker:
+    name: Docker — build images
+    runs-on: ubuntu-latest
+    # Only verify images build; no push on CI (push happens in deploy workflow)
+    needs: [api, web]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build API image
+        run: docker build -t kindred-api:ci ./apps/api
+
+      - name: Build Web image
+        run: |
+          docker build \
+            --build-arg NEXT_PUBLIC_API_URL=http://localhost:4000 \
+            -t kindred-web:ci \
+            ./apps/web

@@ -1,0 +1,51 @@
+# ── Dependencies ─────────────────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+
+# ── Build outputs ────────────────────────────────────────────
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# ── Environment / secrets (NEVER commit these) ───────────────
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ── Logs ─────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pino*.log
+
+# ── OS / editor ──────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ── Prisma generated client (rebuilt from schema) ────────────
+apps/api/node_modules/
+
+# ── k6 test results ──────────────────────────────────────────
+apps/api/k6/*.json
+apps/api/k6/results/
+
+# ── Terraform state (contains secrets) ───────────────────────
+infra/terraform/*.tfstate
+infra/terraform/*.tfstate.*
+infra/terraform/.terraform/
+infra/terraform/.terraform.lock.hcl
+
+# ── Claude Code local settings ───────────────────────────────
+.claude/
+
+# ── Session & temp ───────────────────────────────────────────
+cookies.txt
+*.tmp

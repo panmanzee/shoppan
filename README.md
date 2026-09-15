@@ -436,7 +436,7 @@ k6 run -e API_BASE=https://your-alb.aws.com apps/api/k6/stress.js
 
 ### 1. Clone and start the database
 ```bash
-git clone https://github.com/YOUR_USERNAME/shoppan.git
+git clone https://github.com/panmanzee/shoppan.git
 cd shoppan
 docker compose up -d        # starts Postgres on port 5433
 ```
@@ -535,4 +535,4 @@ Each layer has a clear responsibility: controllers parse HTTP (and nothing else)
 
 ---
 
-*Built with care by [Your Name](https://github.com/YOUR_USERNAME)*
+*Built with care by [panmanzee](https://github.com/panmanzee)*

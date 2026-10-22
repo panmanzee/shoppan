@@ -25,7 +25,7 @@ export function upgradeUserRoleToSeller(userId: string) {
 
 export function updateSellerProfile(
   userId: string,
-  data: { storeName?: string; bio?: string; avatarUrl?: string | null; bannerUrl?: string | null }
+  data: { storeName?: string; bio?: string | null; avatarUrl?: string | null; bannerUrl?: string | null }
 ) {
   return prisma.sellerProfile.update({ where: { userId }, data });
 }

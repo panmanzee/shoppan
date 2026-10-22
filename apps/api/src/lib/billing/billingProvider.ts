@@ -30,7 +30,7 @@ async function getOrCreateCustomer(userId: string): Promise<string> {
   const customer = await stripe!.customers.create({
     email: user.email,
     name: user.name,
-    metadata: { kindredUserId: userId },
+    metadata: { shoppanUserId: userId },
   });
 
   await prisma.user.update({
@@ -52,13 +52,20 @@ export async function startSubscription(planId: string, userId: string): Promise
   const plan = await prisma.plan.findUniqueOrThrow({ where: { id: planId } });
   const customerId = await getOrCreateCustomer(userId);
 
+  // Subscription price_data must reference an existing Product id
+  // (inline product_data is only allowed on Checkout Sessions/Prices).
+  const product = await stripe.products.create({
+    name: plan.name,
+    metadata: { shoppanPlanId: planId },
+  });
+
   const subscription = await stripe.subscriptions.create({
     customer: customerId,
     items: [
       {
         price_data: {
           currency: "usd",
-          product_data: { name: plan.name, metadata: { kindredPlanId: planId } },
+          product: product.id,
           unit_amount: plan.priceCents,
           recurring: { interval: "month" },
         },
@@ -66,7 +73,7 @@ export async function startSubscription(planId: string, userId: string): Promise
     ],
     payment_behavior: "default_incomplete",
     expand: ["latest_invoice.payment_intent"],
-    metadata: { kindredPlanId: planId, kindredUserId: userId },
+    metadata: { shoppanPlanId: planId, shoppanUserId: userId },
   });
 
   return { success: true, providerSubscriptionId: subscription.id };

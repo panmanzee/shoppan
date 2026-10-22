@@ -2,36 +2,39 @@ name: CI
 
 on:
   push:
-    branches: [main, dev]
+    branches: [master]
   pull_request:
-    branches: [main]
+    branches: [master]
+  workflow_dispatch:
 
 jobs:
   # ── API ─────────────────────────────────────────────────────────────────────
   api:
-    name: API — lint · typecheck · test
+    name: API — typecheck · test · build
     runs-on: ubuntu-latest
 
     services:
       postgres:
-        image: postgres:16-alpine
+        # pgvector image: the migrations run CREATE EXTENSION vector
+        image: pgvector/pgvector:pg16
         env:
-          POSTGRES_USER: kindred
-          POSTGRES_PASSWORD: kindred_test
-          POSTGRES_DB: kindred_test
+          POSTGRES_USER: shoppan
+          POSTGRES_PASSWORD: shoppan_test
+          POSTGRES_DB: shoppan_test
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U shoppan -d shoppan_test"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
 
     env:
-      DATABASE_URL: postgresql://kindred:kindred_test@localhost:5432/kindred_test
-      JWT_SECRET: ci_test_secret
+      DATABASE_URL: postgresql://shoppan:shoppan_test@localhost:5432/shoppan_test?schema=public
+      JWT_SECRET: ci_test_secret_at_least_32_characters_long
       JWT_EXPIRES_IN: 1d
-      COOKIE_NAME: kindred_token
+      COOKIE_NAME: shoppan_session
+      CLIENT_ORIGIN: http://localhost:3000
       NODE_ENV: test
 
     defaults:
@@ -55,6 +58,10 @@ jobs:
 
       - name: Run migrations
         run: npx prisma migrate deploy
+
+      - name: Seed reference data
+        # Tests rely on the seeded plans and categories
+        run: npx prisma db seed
 
       - name: Typecheck
         run: npx tsc --noEmit
@@ -98,18 +105,18 @@ jobs:
   docker:
     name: Docker — build images
     runs-on: ubuntu-latest
-    # Only verify images build; no push on CI (push happens in deploy workflow)
+    # Only verifies the images build; nothing is pushed or deployed.
     needs: [api, web]
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Build API image
-        run: docker build -t kindred-api:ci ./apps/api
+        run: docker build -t shoppan-api:ci ./apps/api
 
       - name: Build Web image
         run: |
           docker build \
             --build-arg NEXT_PUBLIC_API_URL=http://localhost:4000 \
-            -t kindred-web:ci \
+            -t shoppan-web:ci \
             ./apps/web

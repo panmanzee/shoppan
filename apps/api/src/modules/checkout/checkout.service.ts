@@ -3,7 +3,7 @@
  * multiple sellers gets split into one Order per seller, each with its
  * own commission/payout math, all created atomically.
  *
- * Phase 3 adds perk enforcement on top, per PROJECT_INSTRUCTIONS.md:
+ * Phase 3 adds perk enforcement on top, per the project plan:
  *   - Buyer's active subscription (if any) gives a % discount on every
  *     seller's subtotal.
  *   - Each seller's OWN active subscription (if any) lowers the

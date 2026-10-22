@@ -10,7 +10,7 @@
  * product A, weighted by how strong each signal was (see constants.ts).
  * This is a simple, explainable stand-in for a real matrix-factorization
  * model (e.g. the `implicit` Python library suggested in
- * PROJECT_INSTRUCTIONS.md) — not viable here since the API is TypeScript/
+ * the project plan) — not viable here since the API is TypeScript/
  * Node, not Python. See README "Phase 4" for the full writeup, including
  * why this was built in-house instead of using AWS Personalize.
  */

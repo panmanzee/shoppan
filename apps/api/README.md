@@ -1,12 +1,15 @@
-# Kindred API — Phase 1 + 2 + 3 + 4 (Foundation + Marketplace + Subscriptions + Recommendations)
+# Shoppan API
 
-This is the backend for the Kindred marketplace. It currently implements
+> Development notes written during phases 1–4. For the current state of
+> the whole project (search, Stripe, Docker, CI) see the root `README.md`.
+
+This is the backend for the Shoppan marketplace. It currently implements
 **Phase 1** (auth + core schema), **Phase 2** (product CRUD, seller
 storefronts, reviews, multi-seller cart checkout, order history),
 **Phase 3** (buyer/seller subscription tiers, with perks actually
 enforced in checkout and product ranking), and **Phase 4** (AI Feature 1:
 a self-built recommendation engine — "recommended for you" and "similar
-products") from `PROJECT_INSTRUCTIONS.md`.
+products") from the project plan.
 
 Two things are intentionally stubbed/placeholder for now, per explicit
 scope decision, and are called out again in "Known placeholders" below:
@@ -106,7 +109,7 @@ client would always list plans before letting the user pick one.
 ## How Phase 3 perks actually change behavior (not just a pricing page)
 
 - **Buyer discount**: if the buyer has an ACTIVE subscription to a BUYER
-  plan with a `discountPercent` perk (the seeded "Kindred+" plan has
+  plan with a `discountPercent` perk (the seeded "Shoppan+" plan has
   10%), every seller's subtotal in their cart gets that % knocked off at
   checkout — see `discountCents` on each `Order`.
 - **Seller commission**: if a seller has an ACTIVE subscription to a
@@ -125,7 +128,7 @@ math and ranking work.
 ## How Phase 4 recommendations work
 
 **Algorithm — item-based collaborative filtering via a weighted
-co-occurrence matrix**, not matrix factorization. `PROJECT_INSTRUCTIONS.md`
+co-occurrence matrix**, not matrix factorization. the project plan
 suggests starting with a matrix-factorization library like `implicit`,
 which is Python-only — this API is Node/TypeScript, so instead
 `recommendations.service.ts` builds an item-item co-occurrence matrix
@@ -216,7 +219,7 @@ in-memory through `app` (no need for `npm run dev` running separately):
   correct for each, stock is decremented on both products, an
   unauthenticated checkout is rejected, and an over-quantity order is
   rejected (5 tests).
-- `test/subscriptions.test.ts` — subscribes a buyer to "Kindred+" through
+- `test/subscriptions.test.ts` — subscribes a buyer to "Shoppan+" through
   the real `/subscriptions` endpoint, gives one seller a "Pro"
   subscription directly via Prisma, then asserts: the discount AND
   lower commission both apply in the same checkout, a non-subscribed
@@ -264,14 +267,3 @@ you didn't break something.
 - Checkout is wrapped in a single Prisma transaction, so a crash
   mid-checkout can never leave stock decremented without a matching
   order (or vice versa)
-
-**Deliberately not done yet** (belongs to later phases per
-`PROJECT_INSTRUCTIONS.md`, not forgotten): real payments (Stripe
-Connect), real recurring billing + webhooks (Stripe Billing), real image
-uploads (S3), refresh-token rotation, CI pipeline running these tests
-automatically on every push (Phase 9), secrets in a real secret manager
-instead of `.env` (Phase 6, once this deploys to AWS).
-
-## Next step
-
-Phase 5 (AI Feature 2: semantic/hybrid search) per `PROJECT_INSTRUCTIONS.md`.

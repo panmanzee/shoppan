@@ -41,7 +41,7 @@ export async function chargeBuyer(amountCents: number): Promise<ChargeResult> {
     amount: amountCents,
     currency: "usd",
     automatic_payment_methods: { enabled: true },
-    metadata: { platform: "kindred" },
+    metadata: { platform: "shoppan" },
   });
 
   return { success: true, providerReference: intent.id };

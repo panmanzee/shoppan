@@ -8,12 +8,12 @@
 services:
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: kindred_postgres
+    container_name: shoppan_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: kindred
-      POSTGRES_PASSWORD: kindred_dev_password
-      POSTGRES_DB: kindred
+      POSTGRES_USER: shoppan
+      POSTGRES_PASSWORD: shoppan_dev_password
+      POSTGRES_DB: shoppan
     ports:
       # Host port 5433 (not 5432) — 5432 is commonly already taken by a
       # local Postgres install or another project's container. The
@@ -21,9 +21,9 @@ services:
       # mapping changed, so DATABASE_URL below must say :5433.
       - "5433:5432"
     volumes:
-      - kindred_postgres_data:/var/lib/postgresql/data
+      - shoppan_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kindred -d kindred"]
+      test: ["CMD-SHELL", "pg_isready -U shoppan -d shoppan"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -32,19 +32,19 @@ services:
     build:
       context: ./apps/api
       dockerfile: Dockerfile
-    container_name: kindred_api
+    container_name: shoppan_api
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://kindred:kindred_dev_password@postgres:5432/kindred
+      DATABASE_URL: postgresql://shoppan:shoppan_dev_password@postgres:5432/shoppan
       NODE_ENV: production
       PORT: 4000
       # Override these via a .env file or shell exports for real secrets:
       JWT_SECRET: change_me_in_production
       JWT_EXPIRES_IN: 7d
-      COOKIE_NAME: kindred_token
+      COOKIE_NAME: shoppan_token
     ports:
       - "4000:4000"
     healthcheck:
@@ -61,7 +61,7 @@ services:
         # Baked into the Next.js bundle at build time — points to the API
         # service name inside the Docker network on port 4000.
         NEXT_PUBLIC_API_URL: http://api:4000
-    container_name: kindred_web
+    container_name: shoppan_web
     restart: unless-stopped
     depends_on:
       api:
@@ -74,4 +74,4 @@ services:
       - "3000:3000"
 
 volumes:
-  kindred_postgres_data:
+  shoppan_postgres_data:

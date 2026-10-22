@@ -1,6 +1,6 @@
 /**
  * Data access for the recommendation engine (Phase 4). Combines three
- * interaction signals per PROJECT_INSTRUCTIONS.md — purchase history
+ * interaction signals per the project plan — purchase history
  * (OrderItem, already existed), ratings (ProductReview, already existed),
  * and view history (ProductView, new this phase) — into one weighted
  * per-user interaction map that recommendations.service.ts turns into an

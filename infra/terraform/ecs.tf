@@ -104,7 +104,7 @@ resource "aws_ecs_task_definition" "api" {
       { name = "PORT",            value = "4000" },
       { name = "CLIENT_ORIGIN",   value = "https://${aws_cloudfront_distribution.web.domain_name}" },
       { name = "JWT_EXPIRES_IN",  value = "7d" },
-      { name = "COOKIE_NAME",     value = "kindred_token" },
+      { name = "COOKIE_NAME",     value = "shoppan_token" },
       { name = "DATABASE_URL",    value = "postgresql://${var.db_username}:${var.db_password}@${aws_db_instance.main.address}:5432/${var.db_name}" },
       { name = "JWT_SECRET",           value = var.jwt_secret },
       { name = "STRIPE_SECRET_KEY",    value = var.stripe_secret_key },

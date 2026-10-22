@@ -12,7 +12,7 @@ resource "aws_db_subnet_group" "main" {
 resource "aws_db_parameter_group" "postgres16" {
   name        = "${var.project}-pg16"
   family      = "postgres16"
-  description = "Kindred Postgres 16 — pgvector enabled"
+  description = "Shoppan Postgres 16 — pgvector enabled"
 
   parameter {
     name  = "shared_preload_libraries"

@@ -13,5 +13,5 @@ recommendationsRouter.get("/products/:id/similar", asyncHandler(recommendationsC
 // "Recommended for you" is a personal interest profile, not public data —
 // requireAuth + always reads from the caller's own session, never a URL
 // param (see recommendations.service.ts comment for why this differs
-// from PROJECT_INSTRUCTIONS.md's literal GET /recommendations/:userId).
+// from the original plan's literal GET /recommendations/:userId).
 recommendationsRouter.get("/recommendations/me", requireAuth, asyncHandler(recommendationsController.mine));

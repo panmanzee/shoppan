@@ -13,7 +13,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   JWT_SECRET: z.string().min(16, "JWT_SECRET should be at least 16 characters"),
   JWT_EXPIRES_IN: z.string().default("7d"),
-  COOKIE_NAME: z.string().default("kindred_session"),
+  COOKIE_NAME: z.string().default("shoppan_session"),
   // Stripe — optional in dev/test; required in production
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),

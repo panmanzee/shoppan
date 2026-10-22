@@ -9,14 +9,14 @@
  * Run:
  *   k6 run k6/load.js
  *   k6 run -e API_BASE=https://api.yourdomain.com k6/load.js
- *   k6 run -e BUYER_EMAIL=buyer@demo.kindred -e BUYER_PASS=demo1234 k6/load.js
+ *   k6 run -e BUYER_EMAIL=buyer@demo.shoppan -e BUYER_PASS=demo1234 k6/load.js
  */
 import http from "k6/http";
 import { check, group, sleep } from "k6";
 import { Rate, Trend } from "k6/metrics";
 
 const BASE = __ENV.API_BASE ?? "http://localhost:4000";
-const BUYER_EMAIL = __ENV.BUYER_EMAIL ?? "buyer@demo.kindred";
+const BUYER_EMAIL = __ENV.BUYER_EMAIL ?? "buyer@demo.shoppan";
 const BUYER_PASS = __ENV.BUYER_PASS ?? "demo1234";
 
 // Custom metrics

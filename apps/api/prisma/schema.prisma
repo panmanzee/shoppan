@@ -1,4 +1,4 @@
-// Prisma schema — Phase 1 core models for the Kindred marketplace.
+// Prisma schema — Phase 1 core models for the Shoppan marketplace.
 // Run `npm run prisma:migrate` after filling in .env to create these tables.
 
 generator client {
@@ -59,7 +59,7 @@ model User {
   updatedAt        DateTime @updatedAt
 
   // A user can optionally also run a seller storefront without a
-  // separate account — see PROJECT_INSTRUCTIONS.md Phase 1.
+  // separate account — see the project plan Phase 1.
   sellerProfile SellerProfile?
 
   orders        Order[]
@@ -139,7 +139,7 @@ model Product {
 
 // ---------- Recommendations (Phase 4) ----------
 // One row per (logged-in) product-detail view. This is the "view
-// history" signal from PROJECT_INSTRUCTIONS.md Phase 4, alongside
+// history" signal from the project plan Phase 4, alongside
 // purchase history (OrderItem) and ratings (ProductReview) which already
 // existed from Phase 1/2 — recommendations.service.ts combines all three.
 // Anonymous (logged-out) views are not recorded; there's no stable
@@ -162,7 +162,7 @@ model ProductView {
 // A single buyer cart can span multiple sellers. Checkout splits it into
 // one Order PER SELLER (not one Order for the whole cart) so commission
 // and payout can be tracked per seller — see Phase 2 in
-// PROJECT_INSTRUCTIONS.md ("split a single cart into per-seller
+// the project plan ("split a single cart into per-seller
 // sub-orders"). `commissionCents`/`sellerPayoutCents` are computed and
 // stored at checkout time so they're traceable later even if the
 // platform's commission rate changes.
@@ -176,7 +176,7 @@ model Order {
   status            OrderStatus @default(PENDING)
 
   subtotalCents     Int // list-price total for this seller's items, before any perk discount
-  discountCents     Int @default(0) // buyer subscription perk discount, e.g. Kindred+ 10% off
+  discountCents     Int @default(0) // buyer subscription perk discount, e.g. Shoppan+ 10% off
   commissionCents   Int // platform's cut (seller's subscription tier can lower this), taken from (subtotal - discount)
   sellerPayoutCents Int // (subtotalCents - discountCents) - commissionCents
 

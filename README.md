@@ -1,6 +1,6 @@
 # Shoppan — Handmade Goods Marketplace
 
-> A full-stack, production-grade e-commerce marketplace built from scratch — inspired by Etsy. Multi-seller storefronts, AI-powered recommendations, semantic search, Stripe billing, and AWS infrastructure — all in a single monorepo.
+> A full-stack, production-grade e-commerce marketplace built from scratch — inspired by Etsy. Multi-seller storefronts, AI-powered recommendations, semantic search, Stripe billing, and Terraform definitions for AWS — all in a single monorepo.
 
 ![Next.js](https://img.shields.io/badge/Next.js_14-000000?style=flat&logo=nextdotjs&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
@@ -11,7 +11,7 @@
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)
 ![AWS](https://img.shields.io/badge/AWS-232F3E?style=flat&logo=amazonaws&logoColor=white)
 ![Terraform](https://img.shields.io/badge/Terraform-7B42BC?style=flat&logo=terraform&logoColor=white)
-![CI](https://img.shields.io/badge/CI-GitHub_Actions-2088FF?style=flat&logo=githubactions&logoColor=white)
+[![CI](https://github.com/panmanzee/shoppan/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/panmanzee/shoppan/actions/workflows/ci.yml)
 
 ---
 
@@ -27,7 +27,7 @@
 - [AI Features](#ai-features)
 - [Subscription & Billing System](#subscription--billing-system)
 - [Infrastructure (AWS + Terraform)](#infrastructure-aws--terraform)
-- [CI/CD Pipeline](#cicd-pipeline)
+- [CI Pipeline](#ci-pipeline)
 - [Load Testing](#load-testing)
 - [Getting Started Locally](#getting-started-locally)
 - [Demo Accounts](#demo-accounts)
@@ -37,7 +37,7 @@
 
 ## Overview
 
-Shoppan is a full-featured marketplace platform where independent makers can sell handmade goods directly to buyers. It supports multi-seller checkouts, tiered subscription plans (for both buyers and sellers), AI-powered product recommendations, semantic search with vector embeddings, and a complete AWS cloud deployment.
+Shoppan is a full-featured marketplace platform where independent makers can sell handmade goods directly to buyers. It supports multi-seller checkouts, tiered subscription plans (for both buyers and sellers), AI-powered product recommendations, semantic search with vector embeddings. Terraform for AWS (ECS Fargate, RDS, ALB, S3, CloudFront) is included but not deployed.
 
 This project was built phase by phase — each phase shipping working, tested code before moving to the next — to simulate real-world iterative delivery.
 
@@ -52,10 +52,10 @@ This project was built phase by phase — each phase shipping working, tested co
 | 3 | **Subscription & Billing** | Stripe-backed buyer/seller subscription tiers; perks enforced in checkout (buyer discounts, seller commission rates, search boost) |
 | 4 | **Recommendation Engine** | Hand-built item-based collaborative filtering via a weighted co-occurrence matrix — no third-party ML library |
 | 5 | **Semantic Search** | pgvector + OpenAI `text-embedding-3-small` for semantic product search; full-text Postgres fallback when no API key is set |
-| 6 | **AWS Infrastructure** | Terraform-managed VPC, RDS PostgreSQL, ECS Fargate, ALB, S3 + CloudFront CDN |
+| 6 | **AWS Infrastructure (IaC)** | Terraform for AWS (VPC, ECS Fargate, RDS, ALB, S3, CloudFront) — written, included, not deployed |
 | 7 | **Docker + Load Tests** | Multi-stage Dockerfiles for API & web; k6 smoke / load / stress test suites |
-| 8 | **Frontend Integration** | Next.js 14 App Router; all pages wired to real API — no mock data |
-| 9 | **CI/CD** | GitHub Actions pipeline: lint → typecheck → integration tests (with ephemeral Postgres) → build → Docker build |
+| 8 | **Frontend Integration** | Next.js 14 App Router; all pages fetch from the real API (the early mock-data file was removed) |
+| 9 | **CI** | GitHub Actions pipeline: typecheck → 21 integration tests (ephemeral Postgres + pgvector) → build → Docker image build |
 
 ---
 
@@ -89,9 +89,9 @@ This project was built phase by phase — each phase shipping working, tested co
 | Layer | Technology |
 |-------|-----------|
 | Containerisation | Docker (multi-stage) + Docker Compose (local dev) |
-| Cloud | AWS (ECS Fargate, RDS, ALB, S3, CloudFront) |
+| Cloud (IaC only) | Terraform for AWS (ECS Fargate, RDS, ALB, S3, CloudFront) — included but not deployed |
 | IaC | Terraform |
-| CI/CD | GitHub Actions |
+| CI | GitHub Actions |
 | Load Testing | k6 |
 
 ---
@@ -143,7 +143,7 @@ Every request goes through `asyncHandler` (global error catch) → auth middlewa
 ## Project Structure
 
 ```
-project_ecom/
+shoppan/
 ├── apps/
 │   ├── api/                        # Express REST API
 │   │   ├── prisma/
@@ -157,7 +157,7 @@ project_ecom/
 │   │   │   ├── lib/
 │   │   │   │   ├── payments/       # Stripe PaymentIntents (stub in dev)
 │   │   │   │   ├── billing/        # Stripe Subscriptions (stub in dev)
-│   │   │   │   └── search/         # pgvector + full-text fallback
+│   │   │   │   └── embeddings/     # OpenAI embeddings for pgvector search
 │   │   │   ├── middleware/         # Auth, rate limit, asyncHandler
 │   │   │   └── modules/
 │   │   │       ├── auth/           # signup · login · logout
@@ -243,7 +243,7 @@ Key design choices:
 
 ## API Reference
 
-All endpoints are prefixed by `http://localhost:4000`. Authentication uses a `kindred_session` httpOnly cookie set on login.
+All endpoints are prefixed by `http://localhost:4000`. Authentication uses a `shoppan_session` httpOnly cookie set on login.
 
 ### Auth
 | Method | Path | Auth | Description |
@@ -347,7 +347,7 @@ Two subscription audiences, each with a free tier and a paid tier:
 | Audience | Plan | Price | Perks |
 |----------|------|-------|-------|
 | Buyer | Free | $0 | Standard checkout |
-| Buyer | Kindred+ | $4.99/mo | **10% discount** on all orders at checkout |
+| Buyer | Shoppan+ | $4.99/mo | **10% discount** on all orders at checkout |
 | Seller | Free | $0 | 12% platform commission |
 | Seller | Pro | $19.99/mo | **6% commission**, **search boost** (ranked above free-tier sellers) |
 
@@ -362,49 +362,49 @@ Stripe is wired via a clean provider abstraction (`paymentProvider.ts`, `billing
 
 ## Infrastructure (AWS + Terraform)
 
-All AWS resources are defined in `infra/terraform/`:
+Terraform for AWS (ECS Fargate, RDS, ALB, S3, CloudFront) is included in `infra/terraform/` but **not deployed** — it has never been applied, so there is no live AWS environment. It is there to show the intended production layout:
 
 ```
 VPC
 ├── Public subnets   → Application Load Balancer
 ├── Private subnets  → ECS Fargate tasks (API + Web containers)
-└── Private subnets  → RDS PostgreSQL (Multi-AZ)
+└── Private subnets  → RDS PostgreSQL (Multi-AZ when environment = production)
 
 S3 bucket           → Static assets / product images
 CloudFront CDN      → Fronts both the ALB and S3
 
-ECS Fargate         → Auto-scaling task definitions for API & Web
-ALB                 → HTTPS termination + path-based routing
+ECS Fargate         → Task definitions + services for API & Web (fixed desired count)
+ALB                 → HTTP listener + path-based routing (HTTPS needs an ACM cert, not included)
 RDS PostgreSQL 16   → Managed DB with automated backups
 ```
 
 Key Terraform files:
 - `vpc.tf` — VPC, subnets, NAT gateway, route tables
-- `ecs.tf` — Task definitions, services, auto-scaling policies
+- `ecs.tf` — Task definitions, services, ALB, target groups, listener rules
 - `rds.tf` — RDS instance, subnet group, parameter group
 - `s3.tf` + `cloudfront.tf` — CDN distribution with S3 origin
 - `outputs.tf` — ALB DNS name, RDS endpoint, CloudFront URL
 
 ---
 
-## CI/CD Pipeline
+## CI Pipeline
 
-`.github/workflows/ci.yml` runs on every push to `main`/`dev` and every pull request:
+`.github/workflows/ci.yml` runs on every push to `master` and every pull request against it:
 
 ```
 ┌─────────────────────────────────┐    ┌─────────────────────────────────┐
 │          API job                │    │          Web job                 │
-│  1. Spin up ephemeral Postgres  │    │  1. npm ci                       │
+│  1. Ephemeral Postgres+pgvector │    │  1. npm ci                       │
 │  2. npm ci                      │    │  2. TypeScript typecheck         │
-│  3. prisma generate + migrate   │    │  3. next build                   │
+│  3. prisma migrate + seed       │    │  3. next build                   │
 │  4. TypeScript typecheck        │    └─────────────────────────────────┘
-│  5. vitest (22 integration tests│
+│  5. vitest (21 integration tests│
 │     against real DB)            │
 │  6. npm run build               │
 └─────────────────────────────────┘
 ```
 
-Both jobs also build the Docker image to verify the `Dockerfile` compiles cleanly in CI.
+A third job (after both pass) builds the API and web Docker images to verify the Dockerfiles. Nothing is pushed or deployed.
 
 ---
 
@@ -454,7 +454,7 @@ npm run dev                 # http://localhost:4000
 ### 3. Set up the web app
 ```bash
 cd apps/web
-# .env.local already contains: NEXT_PUBLIC_API_URL=http://localhost:4000
+echo "NEXT_PUBLIC_API_URL=http://localhost:4000" > .env.local
 npm install
 npm run dev                 # http://localhost:3000
 ```
@@ -462,7 +462,7 @@ npm run dev                 # http://localhost:3000
 ### 4. Run the test suite
 ```bash
 cd apps/api
-npm test                    # 22 integration tests
+npm test                    # 21 integration tests (needs Postgres with pgvector)
 ```
 
 ### Environment variables
@@ -472,10 +472,10 @@ npm test                    # 22 integration tests
 NODE_ENV=development
 PORT=4000
 CLIENT_ORIGIN=http://localhost:3000
-DATABASE_URL=postgresql://kindred:kindred_dev_password@localhost:5433/kindred
+DATABASE_URL=postgresql://shoppan:kindred_dev_password@localhost:5433/shoppan
 JWT_SECRET=your_secret_here
 JWT_EXPIRES_IN=7d
-COOKIE_NAME=kindred_session
+COOKIE_NAME=shoppan_session
 
 # Optional — enables real Stripe payments & billing
 STRIPE_SECRET_KEY=sk_test_...
@@ -498,8 +498,8 @@ After running `npm run prisma:seed`:
 
 | Role | Email | Password |
 |------|-------|----------|
-| Buyer | `buyer@demo.kindred` | `demo1234` |
-| Seller | `willow@demo.kindred` | `demo1234` |
+| Buyer | `buyer@demo.shoppan` | `demo1234` |
+| Seller | `willow@demo.shoppan` | `demo1234` |
 
 ---
 
@@ -524,12 +524,12 @@ Each layer has a clear responsibility: controllers parse HTTP (and nothing else)
 
 ## Test Coverage
 
-22 integration tests across 4 suites, all running against a real PostgreSQL database:
+21 integration tests across 4 suites, all running against a real PostgreSQL database:
 
 | Suite | Tests | What's covered |
 |-------|-------|----------------|
 | `auth.test.ts` | 5 | Signup, duplicate email, wrong password, login, auth guard |
-| `checkout.test.ts` | 5 | Multi-seller split, commission math, stock decrement, auth guard, over-quantity rejection |
+| `checkout.test.ts` | 4 | Multi-seller split + commission math, stock decrement, auth guard, over-quantity rejection |
 | `subscriptions.test.ts` | 6 | Buyer discount, seller commission, search boost ranking, plan cancellation |
 | `recommendations.test.ts` | 6 | Co-occurrence ranking, cold-start fallback, personalised recs, view logging, auth guard |
 

@@ -18,7 +18,7 @@ variable "environment" {
 variable "project" {
   description = "Project name used as a prefix for all resource names"
   type        = string
-  default     = "kindred"
+  default     = "shoppan"
 }
 
 # --- Networking ---
@@ -40,13 +40,13 @@ variable "db_instance_class" {
 variable "db_name" {
   description = "Postgres database name"
   type        = string
-  default     = "kindred"
+  default     = "shoppan"
 }
 
 variable "db_username" {
   description = "Postgres master username"
   type        = string
-  default     = "kindred"
+  default     = "shoppan"
   sensitive   = true
 }
 
@@ -61,7 +61,7 @@ variable "db_password" {
 variable "api_image" {
   description = "Docker image for the API service (ECR URI with tag)"
   type        = string
-  # Example: 123456789012.dkr.ecr.us-east-1.amazonaws.com/kindred-api:latest
+  # Example: 123456789012.dkr.ecr.us-east-1.amazonaws.com/shoppan-api:latest
 }
 
 variable "web_image" {

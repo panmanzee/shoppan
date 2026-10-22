@@ -1,6 +1,6 @@
 /**
  * Seeds the database with:
- *  1. Categories (matching apps/web/src/lib/mockData.ts)
+ *  1. Categories
  *  2. Plans (buyer + seller tiers)
  *  3. Demo sellers + products so the frontend has real data to display
  *

@@ -11,11 +11,11 @@ terraform {
   # Remote state in S3 — bootstrap this bucket manually once before running
   # `terraform init`.  See README for one-time setup instructions.
   backend "s3" {
-    bucket         = "kindred-terraform-state"
-    key            = "kindred/terraform.tfstate"
+    bucket         = "shoppan-terraform-state"
+    key            = "shoppan/terraform.tfstate"
     region         = "us-east-1"
     encrypt        = true
-    dynamodb_table = "kindred-terraform-locks"
+    dynamodb_table = "shoppan-terraform-locks"
   }
 }
 
@@ -24,7 +24,7 @@ provider "aws" {
 
   default_tags {
     tags = {
-      Project     = "kindred"
+      Project     = "shoppan"
       Environment = var.environment
       ManagedBy   = "terraform"
     }

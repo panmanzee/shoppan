@@ -2,7 +2,7 @@
  * Integration tests for Phase 3: subscribing/canceling via the real API,
  * and — the important part — that the perks actually change behavior
  * elsewhere in the app (checkout discount/commission, product ranking),
- * not just sit on a pricing page. See PROJECT_INSTRUCTIONS.md Phase 3
+ * not just sit on a pricing page. See the project plan Phase 3
  * "Definition of done".
  *
  * Assumes `npm run prisma:seed` has been run at least once, since it

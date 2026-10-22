@@ -5,7 +5,7 @@
  * about stacked/conflicting discounts. Subscribing to a new tier
  * auto-cancels the old one in the same audience (an upgrade/downgrade,
  * not a stack) — a real Stripe integration would do proration here
- * instead, see PROJECT_INSTRUCTIONS.md Phase 3.
+ * instead, see the project plan Phase 3.
  */
 import { ApiError } from "@/middleware/errorHandler";
 import * as subscriptionsRepository from "./subscriptions.repository";

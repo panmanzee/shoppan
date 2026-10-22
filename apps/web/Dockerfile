@@ -15,7 +15,8 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+# The repo has no public/ dir yet; create it so the runner COPY below works.
+RUN mkdir -p public && npm run build
 
 # ---- Stage 3: production image ----
 # standalone output already contains everything needed — no node_modules.
